@@ -13,8 +13,8 @@ parent_dir = os.path.abspath(os.path.join(os.getcwd(), "."))
 # Append the parent directory to sys.path, otherwise the following import will fail
 sys.path.append(parent_dir)
 
-from envs.env_2d import map, plotting  # noqa: E402
-from utils.util import timethis  # noqa: E402
+from offpolicy.envs.custom.env_2d import map, plotting  # noqa: E402
+# from utils.util import timethis  # noqa: E402
 
 
 class AStar:
@@ -245,7 +245,7 @@ def is_intersects(rect1, rect2):
             min_x1 > max_x2 or min_y1 > max_y2)
 
 
-@timethis
+# @timethis
 def main():
     s_start = (5, 5)
     s_goal = (45, 45)

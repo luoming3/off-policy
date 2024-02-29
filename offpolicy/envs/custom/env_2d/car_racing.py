@@ -22,7 +22,7 @@ sys.path.append(parent_dir)
 
 import gym
 from gym import spaces
-from envs.env_2d.car_dynamics import Car
+from .car_dynamics import Car
 # from gym.envs.box2d.car_dynamics import Car
 from gym.error import DependencyNotInstalled, InvalidAction
 from gym.utils import EzPickle

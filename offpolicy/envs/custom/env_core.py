@@ -13,9 +13,11 @@ parent_dir = os.path.abspath(os.path.join(os.getcwd(), "."))
 # Append the parent directory to sys.path, otherwise the following import will fail
 sys.path.append(parent_dir)
 
-from envs.env_2d import map, plotting, Astar  # noqa: E402
-from envs.env_2d.car_racing import CarRacing
-from utils.util import timethis
+from .env_2d import map, plotting, Astar  # noqa: E402
+from .env_2d.car_racing import CarRacing
+# from utils.util import timethis
+
+ACT_SPACE = [[0, 0, 0], [-0.6, 0, 0], [0.6, 0, 0], [0, 0.2, 0], [0, 0, 0.8]]
 
 
 class EnvCore(object):
@@ -26,7 +28,7 @@ class EnvCore(object):
     def __init__(self):
         self.agent_num = 4  # number of agent
         self.obs_dim = 12  # observation dimension of agents
-        self.action_dim = 3  # set the action dimension of agents
+        self.action_dim = 5  # set the action dimension of agents
         self.guide_point_num = 100  # number of guide point
         self.map = map.Map()  # 2d env map
         self.width = self.map.x_range
@@ -63,6 +65,8 @@ class EnvCore(object):
         # When self.agent_num is set to 2 agents, the input of actions is a 2-dimensional list, each list contains a shape = (self.action_dim, ) action data
         # The default parameter situation is to input a list with two elements, because the action dimension is 5, so each element shape = (5, )
         """
+        # input actions is one_hot
+        actions = self._one_hot_to_actions(actions)
         self.car_env.step(actions)
         self.car_center = np.array(self.car_env.car.hull.position)
 
@@ -82,15 +86,15 @@ class EnvCore(object):
 
         # Check termination conditions
         if self.is_target(car):
-            sub_agent_done = [True for _ in range(self.agent_num)]
+            sub_agent_done = [[True] for _ in range(self.agent_num)]
             sub_agent_reward = [[np.array(1000)] for _ in range(self.agent_num)]
             self.agents = []
         elif self.map.is_collision(car):
-            sub_agent_done = [True for _ in range(self.agent_num)]
+            sub_agent_done = [[True] for _ in range(self.agent_num)]
             sub_agent_reward = [[np.array(-100)] for _ in range(self.agent_num)]
             self.agents = []
         else:
-            sub_agent_done = [False for _ in range(self.agent_num)]
+            sub_agent_done = [[False] for _ in range(self.agent_num)]
             sub_agent_reward = self.get_reward(car)
 
         return [sub_agent_obs, sub_agent_reward, sub_agent_done, sub_agent_info]
@@ -116,10 +120,10 @@ class EnvCore(object):
         # update variables
         self.last_position = self.car_center
 
-        return [[reward if reward > 0 else -2.] for _ in range(self.agent_num)]
+        return [[reward if reward > 0 else -2.0] for _ in range(self.agent_num)]
 
     def render(self, mode="rgb_array"):
-        if mode == 'rgb_array':
+        if mode == "rgb_array":
             plot = plotting.Plotting(target=self.dest)
             plot.plot_map()
             wheels = [(w.position.x, w.position.y) for w in self.car_env.car.wheels]
@@ -134,7 +138,7 @@ class EnvCore(object):
         end = tuple(self.dest.astype(int).tolist())
         astar = Astar.AStar(start, end, "euclidean")
         path, _ = astar.searching()
- 
+
         # return guide points
         path.reverse()
         return np.array(path[step:-1:step])
@@ -165,20 +169,26 @@ class EnvCore(object):
                     self.car_center - w_position,
                     nearest_point - w_position,
                     self.car_center,  # global state
-                    nearest_point  # global state
-                ], self.obs_dim
+                    nearest_point,  # global state
+                ],
+                self.obs_dim,
             )
 
             sub_agent_obs.append(sub_obs)
 
         return sub_agent_obs
 
+    def _one_hot_to_actions(self, one_hot_actions):
+        action_index = np.argmax(one_hot_actions, axis=1)
+        actions = [ACT_SPACE[action_index[i]] for i in range(self.agent_num)]
+        return np.array(actions)
 
-@timethis
-def env_test(times=10, render=False, mode='rgb_array'):
-    '''
+
+# @timethis
+def env_test(times=10, render=False, mode="rgb_array"):
+    """
     test the validation of env
-    '''
+    """
     env = EnvCore()
 
     for i in range(times):
@@ -199,7 +209,7 @@ def env_test(times=10, render=False, mode='rgb_array'):
             actions = np.array([action_space.sample() for i in range(env.agent_num)])
             result = env.step(actions=actions)
             if render:
-                all_frames.append(env.render()) 
+                all_frames.append(env.render())
             step += 1
 
             reward, done = result[1], result[2]
@@ -207,14 +217,14 @@ def env_test(times=10, render=False, mode='rgb_array'):
             if np.all(done):
                 break
 
-        if render and mode == 'rgb_array':
+        if render and mode == "rgb_array":
             import os
             import time
 
             image_dir = os.path.dirname(__file__) + "/" + "image"
             if not os.path.exists(image_dir):
                 os.makedirs(image_dir)
-            
+
             time_now = int(time.time() * 1000)
             gif_save_path = image_dir + f"/{time_now}_{step}_{episode_reward:.2f}.gif"
             imageio.mimsave(gif_save_path, all_frames, duration=1, loop=0)
