@@ -190,8 +190,8 @@ class SubprocVecEnv(ShareVecEnv):
         self.remotes[0].send(('get_spaces', None))
         observation_space, share_observation_space, action_space = self.remotes[0].recv(
         )
-        self.remotes[0].send(('get_num_agents', None))
-        self.num_agents = self.remotes[0].recv()
+        # self.remotes[0].send(('get_num_agents', None))
+        # self.num_agents = self.remotes[0].recv()
         ShareVecEnv.__init__(self, len(env_fns), observation_space,
                              share_observation_space, action_space)
 
