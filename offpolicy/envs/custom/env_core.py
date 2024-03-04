@@ -4,17 +4,8 @@ from shapely import intersects
 
 import imageio
 
-import os
-import sys
-
-# Get the parent directory of the current file
-parent_dir = os.path.abspath(os.path.join(os.getcwd(), "."))
-
-# Append the parent directory to sys.path, otherwise the following import will fail
-sys.path.append(parent_dir)
-
-from .env_2d import map, plotting, Astar  # noqa: E402
-from .env_2d.car_racing import CarRacing
+from offpolicy.envs.custom.env_2d import map, plotting, Astar
+from offpolicy.envs.custom.env_2d.car_racing import CarRacing
 # from utils.util import timethis
 
 STEER_SPACE = np.linspace(-0.6, 0.6, 3)
