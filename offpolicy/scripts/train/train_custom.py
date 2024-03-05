@@ -161,6 +161,9 @@ def main(args):
               "run_dir": run_dir
               }
 
+    import pprint
+    pprint.pprint(config)
+
     total_num_steps = 0
     runner = Runner(config=config)
     while total_num_steps < all_args.num_env_steps:

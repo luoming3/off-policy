@@ -8,10 +8,15 @@ from offpolicy.envs.custom.env_2d import map, plotting, Astar
 from offpolicy.envs.custom.env_2d.car_racing import CarRacing
 # from utils.util import timethis
 
-STEER_SPACE = np.linspace(-0.6, 0.6, 3)
-GAS_SPACE = np.linspace(0, 0.2, 2)
-BREAK_SPACE = np.linspace(0, 0.2, 2)
-TOTAL_DIM = len(STEER_SPACE) * len(GAS_SPACE) * len(BREAK_SPACE)
+ACT_TYPE = 1
+if ACT_TYPE == 0:
+    STEER_SPACE = np.linspace(-0.6, 0.6, 3)
+    GAS_SPACE = np.linspace(0, 0.2, 2)
+    BREAK_SPACE = np.linspace(0, 0.2, 2)
+    TOTAL_DIM = len(STEER_SPACE) * len(GAS_SPACE) * len(BREAK_SPACE)
+elif ACT_TYPE == 1:
+    ACT_SPACE = [(0, 0, 0), (-0.6, 0, 0), (0.6, 0, 0), (0, 0.2, 0), (0, 0, 0.8)]
+    TOTAL_DIM = len(ACT_SPACE)
 
 
 class EnvCore(object):
@@ -39,16 +44,16 @@ class EnvCore(object):
 
         # 随机的 agent 位置
         # self.car_center = np.array(self.map.random_point()).astype(float)
-        self.car_center = np.array([45., 5.])
+        self.car_center = np.array([45.0, 5.0])
         # 目标位置
         # self.dest = np.array(self.map.random_point())
-        self.dest = np.array([5., 45.])
+        self.dest = np.array([5.0, 45.0])
         self.last_position = self.car_center
         # reset car env
         self.car_env.reset(car_pos=self.car_center)
 
         # guide point
-        self.guide_points = self.get_guide_point(step=4)
+        self.guide_points = self.get_guide_point(step=2)
         self.nearest_point = self.next_guide_point()
 
         # 智能体观测集合
@@ -107,7 +112,7 @@ class EnvCore(object):
         last_dist = np.linalg.norm(self.nearest_point - self.last_position)
         cur_dist = np.linalg.norm(self.nearest_point - self.car_center)
         diff = last_dist - cur_dist
-        reward += diff
+        reward += diff * 100
 
         # guide point reward
         if car.intersects(Point(self.nearest_point)):
@@ -118,7 +123,7 @@ class EnvCore(object):
         # update variables
         self.last_position = self.car_center
 
-        return [[reward if reward > 0 else -2.0] for _ in range(self.agent_num)]
+        return [[reward] for _ in range(self.agent_num)]
 
     def render(self, mode="rgb_array"):
         if mode == "rgb_array":
@@ -180,10 +185,13 @@ class EnvCore(object):
         action_index = np.argmax(one_hot_actions, axis=1)
         actions = [[] for i in range(self.agent_num)]
         for i in range(self.agent_num):
-            multi_actions = self._discrete_to_multidiscrete(action_index[i])
-            actions[i].append(STEER_SPACE[multi_actions[0]])
-            actions[i].append(GAS_SPACE[multi_actions[1]])
-            actions[i].append(BREAK_SPACE[multi_actions[2]])
+            if ACT_TYPE == 0:
+                multi_actions = self._discrete_to_multidiscrete(action_index[i])
+                actions[i].append(STEER_SPACE[multi_actions[0]])
+                actions[i].append(GAS_SPACE[multi_actions[1]])
+                actions[i].append(BREAK_SPACE[multi_actions[2]])
+            elif ACT_TYPE == 1:
+                actions[i] = ACT_SPACE[action_index[i]]
 
         return np.array(actions)
 
@@ -218,14 +226,17 @@ def env_test(times=10, render=False, mode="rgb_array"):
 
         step = 0
         episode_reward = 0
-        for _ in range(100):
+        for _ in range(1024):
             actions = [[] for i in range(env.agent_num)]
             for i in range(env.agent_num):
-                actions[i].append(random.choice(STEER_SPACE))
-                actions[i].append(random.choice(GAS_SPACE))
-                actions[i].append(random.choice(BREAK_SPACE))
+                if ACT_TYPE == 0:
+                    actions[i].append(random.choice(STEER_SPACE))
+                    actions[i].append(random.choice(GAS_SPACE))
+                    actions[i].append(random.choice(BREAK_SPACE))
+                elif ACT_TYPE == 1:
+                    actions[i] = random.choice(ACT_SPACE)
             # actions = [[0.6, 0.5, 0], [0.6, 0.5, 0], [0, 0, 0], [0, 0, 0]]
-            # pprint.pprint(actions)
+            pprint.pprint(actions)
             result = env.step(actions=np.array(actions))
             if render:
                 all_frames.append(env.render())
@@ -250,4 +261,4 @@ def env_test(times=10, render=False, mode="rgb_array"):
 
 
 if __name__ == "__main__":
-    env_test(times=5, render=True)
+    env_test(times=1, render=True)

@@ -40,11 +40,11 @@ class Map:
 
         # obstacle_1
         obstacle_1 = box(minx=x//3, miny=0, maxx=x//3+1, maxy=y//2)
-        obstacles.add(obstacle_1)
+        # obstacles.add(obstacle_1)
 
         # obstacle_2
         obstacle_2 = box(minx=x//3*2, miny=y//2, maxx=x//3*2+1, maxy=y)
-        obstacles.add(obstacle_2)
+        # obstacles.add(obstacle_2)
      
         return obstacles
 
