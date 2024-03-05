@@ -170,6 +170,9 @@ def main(args):
               "use_same_share_obs": all_args.use_same_share_obs,
               "run_dir": run_dir
               }
+    
+    import pprint
+    pprint.pprint(config)
 
     total_num_steps = 0
     runner = Runner(config=config)
