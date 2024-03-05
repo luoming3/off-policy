@@ -204,6 +204,12 @@ class SubprocVecEnv(ShareVecEnv):
         results = [remote.recv() for remote in self.remotes]
         self.waiting = False
         obs, rews, dones, infos = zip(*results)
+
+        for (i, done) in enumerate(dones):
+            if np.any(done):
+                self.remotes[i].send(('reset', None))
+                self.remotes[i].recv()
+        
         return np.stack(obs), np.stack(rews), np.stack(dones), infos
 
     def reset(self):
@@ -228,6 +234,13 @@ class SubprocVecEnv(ShareVecEnv):
         for p in self.ps:
             p.join()
         self.closed = True
+    
+    def render(self, mode="rgb_array"):
+        for pipe in self.remotes:
+            pipe.send(('render', mode))
+        if mode == "rgb_array":   
+            frame = [pipe.recv() for pipe in self.remotes]
+            return np.stack(frame) 
 
 
 def shareworker(remote, parent_remote, env_fn_wrapper):
@@ -427,6 +440,9 @@ class DummyVecEnv(ShareVecEnv):
         results = [env.step(a) for (a, env) in zip(self.actions, self.envs)]
         obs, rews, dones, infos = map(np.array, zip(*results))
 
+        # reset when env done
+        [self.envs[i].reset() for (i, done) in enumerate(dones) if np.any(done)]
+
         self.actions = None
         return obs, rews, dones, infos
 
@@ -437,6 +453,15 @@ class DummyVecEnv(ShareVecEnv):
     def close(self):
         for env in self.envs:
             env.close()
+
+    def render(self, mode="human"):
+        if mode == "rgb_array":
+            return np.array([env.render(mode=mode) for env in self.envs])
+        elif mode == "human":
+            for env in self.envs:
+                env.render(mode=mode)
+        else:
+            raise NotImplementedError
 
 
 class ShareDummyVecEnv(ShareVecEnv):

@@ -25,6 +25,8 @@ def get_config():
     parser.add_argument('--use_wandb', action='store_false', default=True,
                         help="Whether to use weights&biases, if not, use tensorboardX instead")
     parser.add_argument('--user_name', type=str, default="zoeyuchao")
+    parser.add_argument('--render_env', action="store_true", default=False)
+    parser.add_argument('--render_episodes', type=int, default=1)
 
     # env parameters
     parser.add_argument('--env_name', type=str, default="StarCraft2")

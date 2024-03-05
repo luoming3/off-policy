@@ -14,7 +14,8 @@ class MPERunner(MlpRunner):
         # fill replay buffer with random actions
         self.finish_first_train_reset = False
         num_warmup_episodes = max((int(self.batch_size//self.episode_length) + 1, self.args.num_random_episodes))
-        self.warmup(num_warmup_episodes)
+        if not self.render_env:
+            self.warmup(num_warmup_episodes)
         self.start = time.time()
         self.log_clear()
 
@@ -215,6 +216,7 @@ class MPERunner(MlpRunner):
             temp_act = np.zeros((n_rollout_threads, self.sum_act_dim))
             acts.append(temp_act)
 
+        all_frames = []
         for step in range(self.episode_length):
             for agent_id, p_id in zip(self.agent_ids, self.policy_ids):
                 policy = self.policies[p_id]
@@ -248,6 +250,25 @@ class MPERunner(MlpRunner):
 
             if explore and n_rollout_threads == 1 and np.all(dones_env):
                 next_obs = env.reset()
+
+            # render
+            if self.render_env:
+                image = env.render("rgb_array")[0]
+                all_frames.append(image)
+
+                if np.any(dones) or step == self.episode_length - 1:
+                    all_frames = all_frames[:-1]
+                    import imageio
+                    import os
+                    self.gif_dir = f"{os.path.dirname(os.path.abspath(self.model_dir))}/gifs"
+                    if not os.path.exists(self.gif_dir):
+                        os.makedirs(self.gif_dir)
+                    average_episode_rewards = np.mean(np.sum(episode_rewards, axis=0))
+                    imageio.mimsave(f"{self.gif_dir}/{average_episode_rewards:.2f}.gif",
+                                        all_frames,
+                                        duration=0.1,
+                                        loop=0)
+                    break
 
             if not explore and np.all(dones_env):
                 average_episode_rewards = np.mean(np.sum(episode_rewards, axis=0))
@@ -358,3 +379,17 @@ class MPERunner(MlpRunner):
             warmup_rewards.append(env_info['average_episode_rewards'])
         warmup_reward = np.mean(warmup_rewards)
         print("warmup average episode rewards: {}".format(warmup_reward))
+    
+    @torch.no_grad()
+    def render(self):
+        """Collect episodes to evaluate the policy."""
+        self.trainer.prep_rollout()
+        eval_infos = {}
+        eval_infos['average_episode_rewards'] = []
+
+        for _ in range(self.render_episodes):
+            env_info = self.collecter(explore=False, training_episode=False, warmup=False)
+            for k, v in env_info.items():
+                eval_infos[k].append(v)
+
+        self.log_env(eval_infos, suffix="eval_")
