@@ -11,6 +11,8 @@ from offpolicy.utils.util import get_cent_act_dim, get_dim_from_space
 from offpolicy.envs.custom.env_discrete import DiscreteActionEnv
 from offpolicy.envs.env_wrappers import DummyVecEnv, SubprocVecEnv
 
+import pprint
+
 
 def make_train_env(all_args):
     def get_env_fn(rank):
@@ -161,8 +163,8 @@ def main(args):
               "run_dir": run_dir
               }
 
-    import pprint
     pprint.pprint(config)
+    pprint.pprint(vars(all_args))
 
     total_num_steps = 0
     runner = Runner(config=config)
