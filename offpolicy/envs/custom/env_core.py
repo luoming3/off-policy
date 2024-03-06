@@ -10,7 +10,7 @@ from offpolicy.envs.custom.env_2d.car_racing import CarRacing
 from gym.spaces import Discrete
 from offpolicy.utils.util import MultiDiscrete
 
-ACT_TYPE = 2
+ACT_TYPE = 1  # TODO: select action type
 STEER_SPACE = np.linspace(-0.6, 0.6, 3)
 GAS_SPACE = np.linspace(0, 0.2, 2)
 BREAK_SPACE = np.linspace(0, 0.2, 2)
