@@ -76,6 +76,7 @@ class MPERunner(MlpRunner):
         step_avail_acts = {}
         step_next_avail_acts = {}
 
+        all_frames = []
         for step in range(self.episode_length):
             obs_batch = np.concatenate(obs)
             # get actions for all agents to step the env
@@ -100,6 +101,25 @@ class MPERunner(MlpRunner):
 
             if explore and n_rollout_threads == 1 and np.all(dones_env):
                 next_obs = env.reset()
+
+            # render
+            if self.render_env:
+                image = env.render("rgb_array")[0]
+                all_frames.append(image)
+
+                if np.any(dones) or step == self.episode_length - 1:
+                    all_frames = all_frames[:-1]
+                    import imageio
+                    import os
+                    self.gif_dir = f"{os.path.dirname(os.path.abspath(self.model_dir))}/gifs"
+                    if not os.path.exists(self.gif_dir):
+                        os.makedirs(self.gif_dir)
+                    average_episode_rewards = np.mean(np.sum(episode_rewards, axis=0))
+                    imageio.mimsave(f"{self.gif_dir}/{step}_{average_episode_rewards:.2f}.gif",
+                                        all_frames,
+                                        duration=0.1,
+                                        loop=0)
+                    break
 
             if not explore and np.all(dones_env):
                 average_episode_rewards = np.mean(np.sum(episode_rewards, axis=0))
@@ -264,7 +284,7 @@ class MPERunner(MlpRunner):
                     if not os.path.exists(self.gif_dir):
                         os.makedirs(self.gif_dir)
                     average_episode_rewards = np.mean(np.sum(episode_rewards, axis=0))
-                    imageio.mimsave(f"{self.gif_dir}/{average_episode_rewards:.2f}.gif",
+                    imageio.mimsave(f"{self.gif_dir}/{step}_{average_episode_rewards:.2f}.gif",
                                         all_frames,
                                         duration=0.1,
                                         loop=0)
