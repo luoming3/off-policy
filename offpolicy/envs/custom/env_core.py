@@ -6,17 +6,27 @@ import imageio
 
 from offpolicy.envs.custom.env_2d import map, plotting, Astar
 from offpolicy.envs.custom.env_2d.car_racing import CarRacing
-# from utils.util import timethis
 
-ACT_TYPE = 1
+from gym.spaces import Discrete
+from offpolicy.utils.util import MultiDiscrete
+
+ACT_TYPE = 2
+STEER_SPACE = np.linspace(-0.6, 0.6, 3)
+GAS_SPACE = np.linspace(0, 0.2, 2)
+BREAK_SPACE = np.linspace(0, 0.2, 2)
 if ACT_TYPE == 0:
-    STEER_SPACE = np.linspace(-0.6, 0.6, 3)
-    GAS_SPACE = np.linspace(0, 0.2, 2)
-    BREAK_SPACE = np.linspace(0, 0.2, 2)
     TOTAL_DIM = len(STEER_SPACE) * len(GAS_SPACE) * len(BREAK_SPACE)
+    act_space = Discrete(TOTAL_DIM)
 elif ACT_TYPE == 1:
     ACT_SPACE = [(0, 0, 0), (-0.6, 0, 0), (0.6, 0, 0), (0, 0.2, 0), (0, 0, 0.8)]
     TOTAL_DIM = len(ACT_SPACE)
+    act_space = Discrete(TOTAL_DIM)
+elif ACT_TYPE == 2:
+    # custom MultiDiscrete space
+    TOTAL_DIM = 3
+    act_space = MultiDiscrete(
+        [[0, len(STEER_SPACE) - 1], [0, len(GAS_SPACE) - 1], [0, len(BREAK_SPACE) - 1]]
+    )
 
 
 class EnvCore(object):
@@ -192,6 +202,10 @@ class EnvCore(object):
                 actions[i].append(BREAK_SPACE[multi_actions[2]])
             elif ACT_TYPE == 1:
                 actions[i] = ACT_SPACE[action_index[i]]
+            elif ACT_TYPE == 2:
+                actions[i].append(STEER_SPACE[np.argmax(one_hot_actions[i][0:3])])
+                actions[i].append(GAS_SPACE[np.argmax(one_hot_actions[i][3:5])])
+                actions[i].append(BREAK_SPACE[np.argmax(one_hot_actions[i][5:7])])
 
         return np.array(actions)
 
@@ -203,6 +217,9 @@ class EnvCore(object):
             actions.append(action)
             action_index //= space_size
         return actions
+
+    def get_action_space(self):
+        return act_space
 
 
 # @timethis

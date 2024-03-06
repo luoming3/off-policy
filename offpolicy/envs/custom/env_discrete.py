@@ -19,14 +19,7 @@ class DiscreteActionEnv(object):
     def __init__(self):
         self.env = EnvCore()
         self.num_agent = self.env.agent_num
-
         self.signal_obs_dim = self.env.obs_dim
-        self.signal_action_dim = self.env.action_dim
-
-        # if true, action is a number 0...N, otherwise action is a one-hot N-dimensional vector
-        self.discrete_action_input = False
-
-        self.movable = True
 
         # configure spaces
         self.action_space = []
@@ -34,31 +27,11 @@ class DiscreteActionEnv(object):
         self.share_observation_space = []
 
         share_obs_dim = 0
-        total_action_space = []
         for agent_idx in range(self.num_agent):
-            # physical action space
-            u_action_space = spaces.Discrete(self.signal_action_dim)  # 5个离散的动作
+            # action space of agent
+            u_action_space = self.env.get_action_space()
 
-            # if self.movable:
-            total_action_space.append(u_action_space)
-
-            # total action space
-            # if len(total_action_space) > 1:
-            #     # all action spaces are discrete, so simplify to MultiDiscrete action space
-            #     if all(
-            #         [
-            #             isinstance(act_space, spaces.Discrete)
-            #             for act_space in total_action_space
-            #         ]
-            #     ):
-            #         act_space = MultiDiscrete(
-            #             [[0, act_space.n - 1] for act_space in total_action_space]
-            #         )
-            #     else:
-            #         act_space = spaces.Tuple(total_action_space)
-            # self.action_space.append(act_space)
-            # else:
-            self.action_space.append(total_action_space[agent_idx])
+            self.action_space.append(u_action_space)
 
             # observation space
             share_obs_dim += self.signal_obs_dim
