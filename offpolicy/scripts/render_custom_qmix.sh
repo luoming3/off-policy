@@ -6,7 +6,7 @@ num_agents=4
 algo="mqmix"
 exp="luoming"
 seed_max=1
-model_dir="/home/lscm/git/off-policy/offpolicy/scripts/results/custom/separated/mqmix/luoming/run4/models/"  # TODO: path to your model dir
+model_dir=""  # TODO: path to your model dir
 
 current_dir=$(cd $(dirname $0); pwd)
 
