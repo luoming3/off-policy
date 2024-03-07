@@ -12,7 +12,8 @@ class MPERunner(RecRunner):
         # fill replay buffer with random actions
         # fill replay buffer with random actions
         num_warmup_episodes = max((self.batch_size, self.args.num_random_episodes))
-        self.warmup(num_warmup_episodes)
+        if not self.render_env:
+            self.warmup(num_warmup_episodes)
         self.start = time.time()
         self.log_clear()
     
@@ -62,6 +63,7 @@ class MPERunner(RecRunner):
         episode_avail_acts = {p_id : None for p_id in self.policy_ids}
 
         t = 0
+        all_frames = []
         while t < self.episode_length:
             share_obs = obs.reshape(self.num_envs, -1)
             # group observations from parallel envs into one batch to process at once
@@ -89,6 +91,26 @@ class MPERunner(RecRunner):
             env_acts = np.split(acts_batch, self.num_envs)
             # env step and store the relevant episode information
             next_obs, rewards, dones, infos = env.step(env_acts)
+
+            # render
+            if self.render_env:
+                image = env.render("rgb_array")[0]
+                all_frames.append(image)
+
+                if np.any(dones) or t == self.episode_length - 1:
+                    all_frames = all_frames[:-1]
+                    import imageio
+                    import os
+                    self.gif_dir = f"{os.path.dirname(os.path.abspath(self.model_dir))}/gifs"
+                    if not os.path.exists(self.gif_dir):
+                        os.makedirs(self.gif_dir)
+                    average_episode_rewards = np.mean(np.sum(episode_rewards["policy_0"], axis=0))
+                    imageio.mimsave(f"{self.gif_dir}/{t}_{average_episode_rewards:.2f}.gif",
+                                        all_frames,
+                                        duration=0.1,
+                                        loop=0)
+                    break
+
             if training_episode:
                 self.total_env_steps += self.num_envs
 
@@ -262,3 +284,17 @@ class MPERunner(RecRunner):
         self.env_infos = {}
 
         self.env_infos['average_episode_rewards'] = []
+
+    @torch.no_grad()
+    def render(self):
+        """Collect episodes to evaluate the policy."""
+        self.trainer.prep_rollout()
+        eval_infos = {}
+        eval_infos['average_episode_rewards'] = []
+
+        for _ in range(self.render_episodes):
+            env_info = self.collecter(explore=False, training_episode=False, warmup=False)
+            for k, v in env_info.items():
+                eval_infos[k].append(v)
+
+        self.log_env(eval_infos, suffix="eval_")
