@@ -168,9 +168,9 @@ def get_config():
     parser.add_argument('--actor_train_interval_step', type=int, default=2,
                         help="After how many critic updates actor should be updated")
     parser.add_argument('--train_interval_episode', type=int, default=1,
-                        help="Number of env steps between updates to actor/critic")
+                        help="Number of env steps between updates to actor/critic for rnn")
     parser.add_argument('--train_interval', type=int, default=100,
-                        help="Number of episodes between updates to actor/critic")
+                        help="Number of episodes between updates to actor/critic for mlp")
     parser.add_argument("--use_value_active_masks",
                         action='store_true', default=False)
 
